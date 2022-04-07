@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -22,7 +26,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
-
   final String title;
 
   @override
@@ -30,12 +33,39 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  final textController = TextEditingController();
+  @override
+  // widgetの破棄時にコントローラも破棄
+  void dispose() {
+    textController.dispose();
+    super.dispose();
+  }
+
+
+  final List<Map<String,Map<String, dynamic>>> userList = [];
+
+
+  Future<List<Map<String,Map<String, dynamic>>>> getFirestoreUser() async  {
+    // final CollectionReference users = FirebaseFirestore.instance.collection('users');
+    final DocumentReference<Map<String, dynamic>>  docRef = FirebaseFirestore.instance.collection('users').doc('userInfo');
+    final DocumentSnapshot<Map<String, dynamic>> docSna = await docRef.get();
+    final Map<String, dynamic> data = docSna.data()!;
+    if(data.isNotEmpty) {
+      data.forEach((key, value) {
+        setState(() {
+          userList.add({
+            key.toString() : {
+              "firstName" : value["firstName"].toString(),
+              "lastName" : value["lastName"].toString(),
+              "gender" : value["gender"].toString(),
+              "age" : value["age"].toString(),
+            },
+          });
+        });
+      });
+    }
+    return userList;
   }
 
   @override
@@ -45,21 +75,31 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+        child: ListView.separated(
+            itemCount: userList.length,
+            itemBuilder:  (context, index) {
+              final Map<String, Map<String, dynamic>> user = userList[index];
+              final String callName = user.keys.first.toString();
+              return ListTile(
+                tileColor: Colors.greenAccent,
+                title: Text(callName),
+                subtitle: Column(
+                  children: [
+                    Text('${user.values.first['firstName']} ${user.values.first['lastName']}'),
+                    Text(user.values.first['gender'].toString()),
+                    Text(user.values.first['age'].toString()),
+                  ],
+                ),
+              );
+            },
+
+          separatorBuilder: (BuildContext context, int index) {
+              return const SizedBox(height: 10);
+              },
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: getFirestoreUser,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
