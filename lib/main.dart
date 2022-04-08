@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:firebase_practice/add_user.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,7 +22,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      initialRoute: '/',
+      routes: <String, WidgetBuilder> {
+        '/': (BuildContext context) => const MyHomePage(title: 'Home Page'),
+        '/addUser': (BuildContext context) => const AddUser(),
+      },
     );
   }
 }
@@ -41,16 +48,14 @@ class _MyHomePageState extends State<MyHomePage> {
     textController.dispose();
     super.dispose();
   }
+  var userList = [];
 
-
-  final List<Map<String,Map<String, dynamic>>> userList = [];
-
-
-  Future<List<Map<String,Map<String, dynamic>>>> getFirestoreUser() async  {
+  void getFirestoreUser() async  {
     // final CollectionReference users = FirebaseFirestore.instance.collection('users');
-    final DocumentReference<Map<String, dynamic>>  docRef = FirebaseFirestore.instance.collection('users').doc('userInfo');
-    final DocumentSnapshot<Map<String, dynamic>> docSna = await docRef.get();
-    final Map<String, dynamic> data = docSna.data()!;
+    final docRef = FirebaseFirestore.instance.collection('users').doc('userInfo');
+    final docSna = await docRef.get();
+    log(docSna.id.runtimeType.toString());
+    final data = docSna.data()!;
     if(data.isNotEmpty) {
       data.forEach((key, value) {
         setState(() {
@@ -65,7 +70,6 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       });
     }
-    return userList;
   }
 
   @override
@@ -73,6 +77,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: [
+          IconButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/addUser');
+              },
+              icon: const Icon(Icons.add),
+          ),
+        ],
       ),
       body: Center(
         child: ListView.separated(
@@ -102,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: getFirestoreUser,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
